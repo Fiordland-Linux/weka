@@ -1,0 +1,188 @@
+#!/usr/bin/python3 -I
+import os
+import pwd
+import re
+import subprocess
+import sys
+
+sys.path.insert(0, "/usr/lib/weka")
+
+import desktops
+import plan
+
+ID = re.compile(r"^[a-z0-9-]{1,32}$")
+
+
+def out(kind, text=""):
+    print(f"{kind}\t{text}", flush=True)
+
+
+def run(*cmd, check=True):
+    out("cmd", " ".join(cmd))
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+                         env={**os.environ, "LC_ALL": "C"})
+    for line in p.stdout:
+        out("log", line.rstrip())
+    p.wait()
+    if check and p.returncode:
+        raise RuntimeError(f"{cmd[0]} failed with code {p.returncode}")
+    return p.returncode
+
+
+def write(path, text):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    if os.path.exists(path) and not os.path.exists(path + ".weka-bak"):
+        subprocess.run(["cp", "-a", path, path + ".weka-bak"])
+    tmp = path + ".weka-tmp"
+    with open(tmp, "w") as f:
+        f.write(text)
+    os.chmod(tmp, 0o644)
+    os.replace(tmp, path)
+    out("log", f"wrote {path}")
+
+
+def read(path):
+    try:
+        with open(path) as f:
+            return f.read()
+    except OSError:
+        return ""
+
+
+def autologin(user):
+    pats = {"/etc/sddm.conf.d/10-fiordland.conf": rf"^User={user}$", "/etc/gdm/custom.conf": rf"^AutomaticLogin={user}$",
+            "/etc/lightdm/lightdm.conf.d/50-fiordland.conf": rf"^autologin-user={user}$",
+            "/etc/greetd/config.toml": rf'\[initial_session\][^\[]*^user = "{user}"$',
+            "/etc/greetd/cosmic-greeter.toml": rf'\[initial_session\][^\[]*^user = "{user}"$'}
+    return any(re.search(p, read(f), re.M) for f, p in pats.items())
+
+
+def login_manager(d, user, auto):
+    dm, session = d["dm"], d["session"]
+    if dm == "sddm":
+        conf = "[Theme]\nCurrent=breeze\n" if d["id"] == "plasma" else "[General]\n"
+        if auto:
+            conf += f"\n[Autologin]\nUser={user}\nSession={session}.desktop\n"
+        write("/etc/sddm.conf.d/10-fiordland.conf", conf)
+    elif dm == "gdm":
+        if auto:
+            write("/etc/gdm/custom.conf", f"[daemon]\nAutomaticLoginEnable=True\nAutomaticLogin={user}\n")
+    elif dm == "cosmic":
+        conf = read("/etc/greetd/cosmic-greeter.toml")
+        if auto and conf and "[initial_session]" not in conf:
+            write("/etc/greetd/cosmic-greeter.toml",
+                  conf.rstrip("\n") + f'\n\n[initial_session]\ncommand = "start-cosmic"\nuser = "{user}"\n')
+    elif dm == "lightdm":
+        greeter = d.get("greeter", "lightdm-gtk-greeter")
+        conf = f"[Seat:*]\ngreeter-session={greeter}\nuser-session={session}\n"
+        if auto:
+            conf += f"autologin-user={user}\nautologin-session={session}\n"
+            run("groupadd", "-rf", "autologin", check=False)
+            run("gpasswd", "-a", user, "autologin", check=False)
+        write("/etc/lightdm/lightdm.conf.d/50-fiordland.conf", conf)
+        if greeter == "lightdm-gtk-greeter" and not os.path.exists("/etc/lightdm/lightdm-gtk-greeter.conf.weka-bak"):
+            write("/etc/lightdm/lightdm-gtk-greeter.conf",
+                  "[greeter]\nbackground=/usr/share/fiordland/wallpaper.png\ntheme-name=Adwaita-dark\n"
+                  "icon-theme-name=Fiordland\nfont-name=Inter 11\n")
+    else:
+        cmd = d["cmd"]
+        conf = ("[terminal]\nvt = 1\n\n[default_session]\n"
+                f'command = "tuigreet --time --remember --remember-session --asterisks '
+                f"--greeting 'Welcome to Fiordland' --cmd {cmd}\"\n"
+                'user = "greeter"\n')
+        if auto:
+            conf += f'\n[initial_session]\ncommand = "{cmd}"\nuser = "{user}"\n'
+        write("/etc/greetd/config.toml", conf)
+
+
+def unit_exists(dm):
+    return any(os.path.exists(f"{b}/{plan.DM_UNITS[dm]}.service") for b in ("/usr/lib/systemd/system", "/etc/systemd/system"))
+
+
+def parse(argv):
+    keep, default, apps, dry = {}, None, False, False
+    it = iter(argv)
+    for a in it:
+        if a == "--keep":
+            did, _, sid = next(it, "").partition(":")
+            if not ID.match(did) or (sid and not ID.match(sid)) or did in keep:
+                raise ValueError("bad --keep")
+            keep[did] = sid or None
+        elif a == "--default":
+            default = next(it, "")
+        elif a == "--remove-apps":
+            apps = True
+        elif a == "--dry-run":
+            dry = True
+        else:
+            raise ValueError(f"bad argument {a}")
+    plan.validate(keep, default)
+    return keep, default, apps, dry
+
+
+def main():
+    if len(sys.argv) < 2 or sys.argv[1] not in ("apply", "plan"):
+        print("usage: weka-helper apply|plan --keep id[:shell]... --default id [--remove-apps]", file=sys.stderr)
+        return 2
+    try:
+        keep, default, apps, dry = parse(sys.argv[2:])
+    except (ValueError, StopIteration) as e:
+        print(e, file=sys.stderr)
+        return 2
+    uid = os.environ.get("PKEXEC_UID", str(os.getuid()))
+    try:
+        user = pwd.getpwuid(int(uid))
+    except (KeyError, ValueError):
+        return 2
+    sysm = plan.Sys()
+    current = plan.detect(sysm, user.pw_dir)
+    p = plan.build(sysm, current, keep, default, apps)
+    d = desktops.find(default)
+    if sys.argv[1] == "plan" or dry:
+        import json
+        print(json.dumps({**p, "current": current}))
+        return 0
+    if os.geteuid() != 0:
+        print("must run as root", file=sys.stderr)
+        return 1
+    if os.path.exists("/var/lib/pacman/db.lck"):
+        out("error", "another package manager is running, close it and try again")
+        return 1
+    try:
+        out("step", "snapshot")
+        if os.path.exists("/usr/bin/snapper"):
+            run("snapper", "-c", "root", "create", "-t", "single", "-c", "important", "-d", "weka: before desktop change",
+                check=False)
+        out("step", "install")
+        if p["install"]:
+            run("pacman", "-Syu", "--needed", "--noconfirm", *p["install"])
+        missing = [k for k in keep if not plan.session_file(sysm, desktops.find(k))]
+        if missing:
+            raise RuntimeError("no login session found for " + ", ".join(missing) + ", nothing was removed")
+        if not unit_exists(d["dm"]):
+            raise RuntimeError(f"login screen {d['dm']} did not install, nothing was removed")
+        out("step", "login")
+        login_manager(d, user.pw_name, autologin(user.pw_name))
+        if p["switch_dm"]:
+            if p["old_dm"]:
+                run("systemctl", "disable", plan.DM_UNITS[p["old_dm"]] + ".service", check=False)
+            run("systemctl", "enable", "--force", plan.DM_UNITS[d["dm"]] + ".service")
+        out("step", "remove")
+        if p["remove"]:
+            if run("pacman", "-Ru", "--noconfirm", *p["remove"], check=False):
+                for q in p["remove"]:
+                    run("pacman", "-Ru", "--noconfirm", q, check=False)
+        if p["kept_apps"]:
+            run("pacman", "-D", "--asexplicit", *[q for q in p["kept_apps"] if q in sysm.installed()], check=False)
+        out("step", "verify")
+        if not unit_exists(d["dm"]) or not plan.session_file(sysm, d):
+            raise RuntimeError("login check failed, restore the snapshot from the boot menu")
+        out("done", default)
+        return 0
+    except Exception as e:
+        out("error", str(e))
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

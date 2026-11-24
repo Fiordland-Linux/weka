@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Desktops
+GenericName=Desktop Manager
+Comment=Add, remove or swap desktops and window managers
+Exec=weka
+Icon=preferences-desktop
+Categories=Settings;System;
+Keywords=desktop;window manager;de;wm;session;
