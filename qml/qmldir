@@ -1,3 +1,22 @@
 singleton Theme 1.0 Theme.qml
-Glyph 1.0 Glyph.qml
-FButton 1.0 FButton.qml
+singleton Motion 1.0 Motion.qml
+Txt 1.0 Txt.qml
+Icon 1.0 Icon.qml
+SpringBehavior 1.0 SpringBehavior.qml
+FadeBehavior 1.0 FadeBehavior.qml
+ColorBehavior 1.0 ColorBehavior.qml
+Backdrop 1.0 Backdrop.qml
+Card 1.0 Card.qml
+Shadow 1.0 Shadow.qml
+PillButton 1.0 PillButton.qml
+IconButton 1.0 IconButton.qml
+Chip 1.0 Chip.qml
+FSwitch 1.0 FSwitch.qml
+CookieShape 1.0 CookieShape.qml
+WavyProgress 1.0 WavyProgress.qml
+LoadingIndicator 1.0 LoadingIndicator.qml
+NavRail 1.0 NavRail.qml
+Snackbar 1.0 Snackbar.qml
+FScroll 1.0 FScroll.qml
+PageFade 1.0 PageFade.qml
+DesktopCard 1.0 DesktopCard.qml

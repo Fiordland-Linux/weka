@@ -1,6 +1,7 @@
 import os
 import re
 import shutil
+import tempfile
 import time
 
 import desktops
@@ -22,12 +23,21 @@ def read(path):
 
 
 def write(path, text, log):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    backup(path)
-    tmp = path + ".weka-tmp"
-    with open(tmp, "w") as f:
-        f.write(text)
-    os.replace(tmp, path)
+    real = os.path.realpath(path)
+    folder = os.path.dirname(real)
+    os.makedirs(folder, exist_ok=True)
+    backup(real)
+    mode = os.stat(real).st_mode & 0o777 if os.path.exists(real) else 0o644
+    fd, tmp = tempfile.mkstemp(prefix=".weka-", dir=folder)
+    try:
+        with os.fdopen(fd, "w") as f:
+            f.write(text)
+        os.chmod(tmp, mode)
+        os.replace(tmp, real)
+    except BaseException:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+        raise
     log(f"wrote {path}")
 
 
