@@ -32,7 +32,7 @@ jobs:
         run: |
           set -euo pipefail
           lint="$(command -v pyside6-qmllint || echo /usr/lib/qt6/bin/qmllint)"
-          cd qml && "$lint" --max-warnings 0 ./*.qml
+          "$lint" -I qml qml/*.qml
       - name: shellcheck
         run: |
           set -euo pipefail

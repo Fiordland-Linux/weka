@@ -8,6 +8,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from PySide6.QtCore import QTimer, QUrl
 from PySide6.QtGui import QGuiApplication, QIcon
 from PySide6.QtQml import QQmlApplicationEngine
+from PySide6.QtQuick import QQuickWindow
 
 from backend import HERE, Backend
 
@@ -20,7 +21,13 @@ def shoot(app, engine, outdir, prefix):
     queue = list(STATES)
 
     def grab(name):
-        root.grabWindow().save(os.path.join(outdir, f"{prefix}-{name}.png"))
+        try:
+            window = root if isinstance(root, QQuickWindow) else root.findChild(QQuickWindow)
+            window.grabWindow().save(os.path.join(outdir, f"{prefix}-{name}.png"))
+        except Exception as e:
+            print(f"screenshot {name} failed: {e}", file=sys.stderr)
+            app.exit(1)
+            return
         step()
 
     def step():
@@ -33,6 +40,7 @@ def shoot(app, engine, outdir, prefix):
         QTimer.singleShot(1000, lambda: grab(name))
 
     QTimer.singleShot(1200, step)
+    QTimer.singleShot(120000, lambda: app.exit(2))
 
 
 def main():
