@@ -1,0 +1,74 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+env:
+  SYMBOLS_COMMIT: 10ecc14790612ca8fd164e3f4ffe9c16fc50d5b7
+  SYMBOLS_SHA256: 7e74e36533ccee12c2b81e75bfcf3ccf123d3bb7e7e46d65d94445f23db0c97c
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - run: pacman -Syu --noconfirm --needed git python python-pytest
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: python -m pytest -q tests
+  lint:
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - run: pacman -Syu --noconfirm --needed git pyside6 qt6-declarative qt6-shadertools shellcheck
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: qmllint
+        run: |
+          set -euo pipefail
+          lint="$(command -v pyside6-qmllint || echo /usr/lib/qt6/bin/qmllint)"
+          "$lint" --max-warnings 0 -I qml qml/*.qml
+      - name: shellcheck
+        run: |
+          set -euo pipefail
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          mapfile -t scripts < <(git ls-files '*.sh')
+          if [ "${#scripts[@]}" -gt 0 ]; then
+            shellcheck "${scripts[@]}"
+          fi
+  screenshots:
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - run: pacman -Syu --noconfirm --needed git pyside6 inter-font ttf-jetbrains-mono fontconfig curl
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: material symbols
+        run: |
+          set -euo pipefail
+          dir="$(mktemp -d)"
+          curl -fsSL -o "$dir/symbols.ttf" "https://raw.githubusercontent.com/google/material-design-icons/${SYMBOLS_COMMIT}/variablefont/MaterialSymbolsRounded%5BFILL%2CGRAD%2Copsz%2Cwght%5D.ttf"
+          echo "${SYMBOLS_SHA256}  $dir/symbols.ttf" | sha256sum -c -
+          install -Dm644 "$dir/symbols.ttf" /usr/share/fonts/TTF/MaterialSymbolsRounded.ttf
+          fc-cache -f
+      - name: render
+        env:
+          QT_QPA_PLATFORM: offscreen
+          QT_QUICK_BACKEND: software
+          WEKA_LOW_END: "0"
+        run: |
+          set -euo pipefail
+          mkdir -p shots
+          python weka.py --screenshot shots --prefix dark --theme dark
+          python weka.py --screenshot shots --prefix light --theme light
+          WEKA_LOW_END=1 WEKA_REDUCE_MOTION=1 python weka.py --screenshot shots --prefix lowend --theme dark
+          ls -l shots
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: weka-screenshots
+          path: shots/*.png
+          if-no-files-found: error
