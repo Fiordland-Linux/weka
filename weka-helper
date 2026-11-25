@@ -140,7 +140,7 @@ def main():
         return 2
     sysm = plan.Sys()
     current = plan.detect(sysm, user.pw_dir)
-    p = plan.build(sysm, current, keep, default, apps)
+    p = plan.build(sysm, current, keep, default, apps, user.pw_dir)
     d = desktops.find(default)
     if sys.argv[1] == "plan" or dry:
         import json

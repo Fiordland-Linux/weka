@@ -234,6 +234,7 @@ ApplicationWindow {
 
                     Repeater {
                         model: win.plan ? [
+                            { h: "Heads up", items: win.plan.warnings || [] },
                             { h: "Keeping", items: Object.keys(win.plan.keep).map(function (k) {
                                 var d = backend.catalogue.find(function (x) { return x.id === k })
                                 return d.name + (win.plan.keep[k] ? "  ·  " + win.shellName(d, win.plan.keep[k]) : "") + (k === win.plan.default ? "  (default login)" : "") }) },

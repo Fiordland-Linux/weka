@@ -1,3 +1,4 @@
+import fnmatch
 import os
 import sys
 import tempfile
@@ -43,6 +44,9 @@ class Fake(plan.Sys):
     def current_dm(self):
         return self.dm
 
+    def nonempty(self, pattern):
+        return [f for f in self.fs if fnmatch.fnmatch(f, pattern) and self.fs[f]]
+
 
 PLASMA = desktops.packages("plasma", None)
 GNOME = desktops.packages("gnome", None)
@@ -87,6 +91,30 @@ class Plan(unittest.TestCase):
         self.assertIn("plasma-meta", p["remove"])
         p = plan.build(s, {"plasma": None}, {"gnome": None}, "gnome", True)
         self.assertIn("dolphin", p["remove"])
+
+    def test_secret_stores_never_removed(self):
+        vaults = ["kwallet", "kwallet-pam", "gnome-keyring", "keepassxc"]
+        s = Fake(PLASMA + ["sddm"] + vaults, sessions("plasma"), cascade_extra=vaults)
+        p = plan.build(s, {"plasma": None}, {"hyprland": "none"}, "hyprland", True)
+        for v in vaults:
+            self.assertNotIn(v, p["remove"])
+        self.assertIn("plasma-meta", p["remove"])
+
+    def test_kwallet_warning(self):
+        files = sessions("plasma")
+        files["/home/u/.local/share/kwalletd/kdewallet.kwl"] = "data"
+        s = Fake(PLASMA + ["sddm", "kwallet"], files)
+        p = plan.build(s, {"plasma": None}, {"hyprland": "none"}, "hyprland", home="/home/u")
+        self.assertEqual(len(p["warnings"]), 1)
+        self.assertIn("kwalletmanager", p["install"])
+        p = plan.build(s, {"plasma": None}, {"plasma": None, "hyprland": "none"}, "hyprland", home="/home/u")
+        self.assertEqual(p["warnings"], [])
+        self.assertNotIn("kwalletmanager", p["install"])
+        files["/home/u/.local/share/kwalletd/kdewallet.kwl"] = ""
+        p = plan.build(s, {"plasma": None}, {"hyprland": "none"}, "hyprland", home="/home/u")
+        self.assertEqual(p["warnings"], [])
+        p = plan.build(s, {"plasma": None}, {"hyprland": "none"}, "hyprland")
+        self.assertEqual(p["warnings"], [])
 
     def test_shared_dm_kept(self):
         s = Fake(PLASMA + desktops.packages("lxqt", None), sessions("plasma", "lxqt"))

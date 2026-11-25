@@ -1,3 +1,4 @@
+import fnmatch
 import glob
 import os
 import re
@@ -8,6 +9,9 @@ import desktops
 SESSION_DIRS = ["/usr/share/wayland-sessions", "/usr/share/xsessions"]
 CORE = {"fiordland-base", "fiordland-desktop", "base", "linux", "linux-firmware", "sudo", "networkmanager",
         "pipewire", "wireplumber", "polkit", "systemd", "kuaka", "weka", "tawaki", "firefox", "git", "base-devel"}
+SECRETS = {"kwallet", "kwallet-pam", "kwalletmanager", "ksshaskpass", "gnome-keyring", "seahorse", "libsecret",
+           "keepassxc", "keepassxc-browser", "pass", "qtpass"}
+KWALLET_HOSTS = {"plasma"}
 DM_UNITS = {"sddm": "sddm", "gdm": "gdm", "lightdm": "lightdm", "greetd": "greetd", "cosmic": "cosmic-greeter"}
 DM_PKGS = {"sddm": "sddm", "gdm": "gdm", "lightdm": "lightdm", "greetd": "greetd", "cosmic": "cosmic-greeter"}
 RUNS = {s["run"] for s in desktops.SHELLS.values() if "run" in s}
@@ -56,6 +60,9 @@ class Sys:
 
     def exists(self, path):
         return os.path.exists(path)
+
+    def nonempty(self, pattern):
+        return [f for f in glob.glob(pattern) if os.path.getsize(f) > 0]
 
     def current_dm(self):
         try:
@@ -146,18 +153,25 @@ def launchers(paths, sysm):
     return found
 
 
-def build(sysm, current, keep, default, remove_apps=False):
+def build(sysm, current, keep, default, remove_apps=False, home=None):
     validate(keep, default)
     installed = sysm.installed()
     want = set()
     for did, sid in keep.items():
         want |= set(desktops.packages(did, sid))
+    warnings = []
+    wallet = home and sysm.nonempty(f"{home}/.local/share/kwalletd/*.kwl")
+    if wallet and KWALLET_HOSTS & set(current) and not KWALLET_HOSTS & set(keep):
+        want.add("kwalletmanager")
+        warnings.append("Your saved passwords are in KWallet, which only unlocks by itself inside KDE Plasma. "
+                        "It stays installed with your passwords in it, and KWallet Manager is added so you can open "
+                        "or export them. Apps on the new desktop may ask you to log in again.")
     install = sorted(p for p in want if p not in installed and not sysm.group(p))
 
     d = desktops.find(default)
     dm = d["dm"]
     old_dm = sysm.current_dm()
-    need = expand(sysm, want, installed) | CORE
+    need = expand(sysm, want, installed) | CORE | SECRETS
     need |= sysm.depends(["fiordland-base", "fiordland-desktop"])
     for kd in keep:
         need.add(DM_PKGS[desktops.find(kd)["dm"]])
@@ -179,7 +193,7 @@ def build(sysm, current, keep, default, remove_apps=False):
     remove = sorted(cascade - set(kept_apps))
 
     return {
-        "keep": keep, "default": default, "install": install, "remove": remove,
+        "keep": keep, "default": default, "install": install, "remove": remove, "warnings": warnings,
         "kept_apps": kept_apps, "dm": dm, "old_dm": old_dm, "switch_dm": dm != old_dm,
         "added": sorted(k for k in keep if k not in current),
         "dropped": sorted(k for k in current if k not in keep),

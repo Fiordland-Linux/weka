@@ -94,7 +94,7 @@ class Backend(QObject):
 
         def work():
             try:
-                p = plan.build(self._sys, self._current, keep, default, apps)
+                p = plan.build(self._sys, self._current, keep, default, apps, self._home)
                 p["keep"] = {k: v or "" for k, v in p["keep"].items()}
                 p["kept_apps"] = [{"pkg": k, "apps": v} for k, v in p["kept_apps"].items()]
                 p["gen"] = gen
