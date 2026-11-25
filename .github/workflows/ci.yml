@@ -11,6 +11,7 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     container: archlinux:latest
     steps:
       - run: pacman -Syu --noconfirm --needed git python python-pytest
@@ -20,6 +21,7 @@ jobs:
       - run: python -m pytest -q tests
   lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     container: archlinux:latest
     steps:
       - run: pacman -Syu --noconfirm --needed git pyside6 qt6-declarative qt6-shadertools shellcheck
@@ -30,7 +32,7 @@ jobs:
         run: |
           set -euo pipefail
           lint="$(command -v pyside6-qmllint || echo /usr/lib/qt6/bin/qmllint)"
-          "$lint" --max-warnings 0 -I qml qml/*.qml
+          cd qml && "$lint" --max-warnings 0 ./*.qml
       - name: shellcheck
         run: |
           set -euo pipefail
@@ -41,6 +43,7 @@ jobs:
           fi
   screenshots:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     container: archlinux:latest
     steps:
       - run: pacman -Syu --noconfirm --needed git pyside6 inter-font ttf-jetbrains-mono fontconfig curl
