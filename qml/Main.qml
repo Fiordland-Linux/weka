@@ -199,7 +199,7 @@ Window {
                     Txt {
                         role: "bodyL"
                         text: win.subtitles[win.page]
-                        color: Theme.onSurfaceVariant
+                        color: Theme.surfaceVariantOn
                     }
                 }
 
@@ -217,7 +217,7 @@ Window {
                         anchors.centerIn: parent
                         role: "labelM"
                         text: "dry run"
-                        color: Theme.onTertiaryContainer
+                        color: Theme.tertiaryContainerOn
                     }
                 }
             }
@@ -307,7 +307,7 @@ Window {
                                 Txt {
                                     role: "titleM"
                                     text: "working out what to change"
-                                    color: Theme.onSurfaceVariant
+                                    color: Theme.surfaceVariantOn
                                 }
                                 Item { Layout.fillWidth: true }
                             }
@@ -323,7 +323,7 @@ Window {
                                     anchors.fill: parent
                                     anchors.margins: 20
                                     text: win.planError
-                                    color: Theme.onErrorContainer
+                                    color: Theme.errorContainerOn
                                     wrapMode: Text.WordWrap
                                 }
                             }
@@ -343,14 +343,14 @@ Window {
                                     Icon {
                                         name: "warning"
                                         filled: true
-                                        tint: Theme.onErrorContainer
+                                        tint: Theme.errorContainerOn
                                         Layout.alignment: Qt.AlignTop
                                     }
 
                                     Txt {
                                         Layout.fillWidth: true
                                         wrapMode: Text.WordWrap
-                                        color: Theme.onErrorContainer
+                                        color: Theme.errorContainerOn
                                         text: "you're removing " + win.nameOf(backend.running) + ", which you're using right now. it keeps running until you restart, then you'll log into " + win.nameOf(win.def) + "."
                                     }
                                 }
@@ -377,7 +377,7 @@ Window {
                                         Txt {
                                             role: "titleM"
                                             text: sec.modelData.h
-                                            color: sec.modelData.tone === "bad" ? Theme.error : Theme.onSurface
+                                            color: sec.modelData.tone === "bad" ? Theme.error : Theme.surfaceOn
                                         }
 
                                         Flow {
@@ -401,7 +401,7 @@ Window {
                                                         anchors.centerIn: parent
                                                         role: "mono"
                                                         text: tag.modelData
-                                                        color: sec.modelData.tone === "bad" ? Theme.error : Theme.onSurfaceVariant
+                                                        color: sec.modelData.tone === "bad" ? Theme.error : Theme.surfaceVariantOn
                                                     }
                                                 }
                                             }
@@ -411,7 +411,7 @@ Window {
                                             visible: sec.modelData.tone !== "mono" && sec.modelData.tone !== "bad"
                                             Layout.fillWidth: true
                                             text: sec.modelData.items.join("\n")
-                                            color: sec.modelData.tone === "warn" ? Theme.onTertiaryContainer : Theme.onSurfaceVariant
+                                            color: sec.modelData.tone === "warn" ? Theme.tertiaryContainerOn : Theme.surfaceVariantOn
                                             wrapMode: Text.WordWrap
                                         }
                                     }
@@ -446,7 +446,7 @@ Window {
                             Txt {
                                 visible: win.plan !== null && win.plan.install.length === 0 && win.plan.remove.length === 0 && !win.plan.switch_dm
                                 text: "no packages change. only your settings get updated."
-                                color: Theme.onSurfaceVariant
+                                color: Theme.surfaceVariantOn
                             }
 
                             Item {
@@ -507,14 +507,14 @@ Window {
                                                     visible: stepPill.done || stepPill.now
                                                     name: stepPill.done ? "check" : "sync"
                                                     size: 18
-                                                    tint: stepPill.done ? Theme.onTertiaryContainer : Theme.onPrimaryContainer
+                                                    tint: stepPill.done ? Theme.tertiaryContainerOn : Theme.primaryContainerOn
                                                     anchors.verticalCenter: parent.verticalCenter
                                                 }
 
                                                 Txt {
                                                     role: "labelL"
                                                     text: stepPill.modelData
-                                                    color: stepPill.done ? Theme.onTertiaryContainer : stepPill.now ? Theme.onPrimaryContainer : Theme.onSurfaceVariant
+                                                    color: stepPill.done ? Theme.tertiaryContainerOn : stepPill.now ? Theme.primaryContainerOn : Theme.surfaceVariantOn
                                                     anchors.verticalCenter: parent.verticalCenter
                                                 }
                                             }
@@ -550,7 +550,7 @@ Window {
                                     role: "mono"
                                     text: t
                                     wrapMode: Text.WrapAnywhere
-                                    color: t.indexOf("error:") === 0 ? Theme.error : t.indexOf("$ ") === 0 ? Theme.primary : Theme.onSurfaceVariant
+                                    color: t.indexOf("error:") === 0 ? Theme.error : t.indexOf("$ ") === 0 ? Theme.primary : Theme.surfaceVariantOn
                                 }
                             }
                         }
@@ -583,7 +583,7 @@ Window {
                                 anchors.centerIn: parent
                                 name: win.ok ? "check" : "close"
                                 size: 64
-                                tint: win.ok ? Theme.onPrimaryContainer : Theme.onErrorContainer
+                                tint: win.ok ? Theme.primaryContainerOn : Theme.errorContainerOn
                             }
                         }
 
@@ -592,7 +592,7 @@ Window {
                             horizontalAlignment: Text.AlignHCenter
                             wrapMode: Text.WordWrap
                             role: "bodyL"
-                            color: win.ok ? Theme.onSurface : Theme.error
+                            color: win.ok ? Theme.surfaceOn : Theme.error
                             text: win.message || (win.ok ? "your desktops are set up. restart to log into " + win.nameOf(win.def) + "." : "")
                         }
                     }
@@ -622,7 +622,7 @@ Window {
                             visible: win.page === 0
                             role: "titleS"
                             text: win.count() + " selected"
-                            color: Theme.onSurfaceVariant
+                            color: Theme.surfaceVariantOn
                         }
 
                         Item { Layout.fillWidth: true }

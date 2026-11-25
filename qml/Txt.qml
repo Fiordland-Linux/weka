@@ -6,7 +6,7 @@ Text {
     property bool emphasized: false
     readonly property var spec: Theme.type[role] || Theme.type.bodyM
 
-    color: Theme.onSurface
+    color: Theme.surfaceOn
     font.family: role === "mono" ? Theme.mono : Theme.font
     font.pixelSize: spec.s
     font.weight: Math.min(1000, spec.w + (emphasized ? 200 : 0))

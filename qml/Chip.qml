@@ -34,7 +34,7 @@ Item {
         Rectangle {
             anchors.fill: parent
             radius: parent.radius
-            color: Theme.onSurfaceVariant
+            color: Theme.surfaceVariantOn
             opacity: tap.pressed ? 0.12 : hover.hovered ? 0.08 : 0
             FadeBehavior on opacity {}
         }
@@ -50,14 +50,14 @@ Item {
             name: root.icon !== "" ? root.icon : "check"
             size: 18
             filled: root.selected
-            tint: root.selected ? Theme.onSecondaryContainer : Theme.primary
+            tint: root.selected ? Theme.secondaryContainerOn : Theme.primary
             anchors.verticalCenter: parent.verticalCenter
         }
 
         Txt {
             role: "labelL"
             text: root.text
-            color: root.selected ? Theme.onSecondaryContainer : Theme.onSurfaceVariant
+            color: root.selected ? Theme.secondaryContainerOn : Theme.surfaceVariantOn
             anchors.verticalCenter: parent.verticalCenter
         }
     }

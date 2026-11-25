@@ -9,9 +9,9 @@ Item {
 
     readonly property bool pressed: tap.pressed
     readonly property bool hovered: hover.hovered
-    readonly property color fg: kind === "filled" ? Theme.onPrimary
-        : kind === "tonal" ? Theme.onSecondaryContainer
-        : kind === "danger" ? Theme.onErrorContainer
+    readonly property color fg: kind === "filled" ? Theme.primaryOn
+        : kind === "tonal" ? Theme.secondaryContainerOn
+        : kind === "danger" ? Theme.errorContainerOn
         : Theme.primary
     readonly property color bg: kind === "filled" ? Theme.primary
         : kind === "tonal" ? Theme.secondaryContainer

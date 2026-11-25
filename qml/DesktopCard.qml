@@ -89,7 +89,7 @@ Card {
                             anchors.centerIn: parent
                             name: root.on ? "check" : root.info.kind === "wm" ? "terminal" : "desktop_windows"
                             size: 24
-                            tint: root.on ? Theme.onPrimary : Theme.onSecondaryContainer
+                            tint: root.on ? Theme.primaryOn : Theme.secondaryContainerOn
                         }
                     }
 
@@ -107,7 +107,7 @@ Card {
                         Txt {
                             role: "labelM"
                             text: root.info.kind === "wm" ? "window manager" : "desktop"
-                            color: Theme.onSurfaceVariant
+                            color: Theme.surfaceVariantOn
                         }
                     }
 
@@ -123,7 +123,7 @@ Card {
                             anchors.centerIn: parent
                             role: "labelS"
                             text: root.inUse ? "in use" : "installed"
-                            color: root.inUse ? Theme.onTertiaryContainer : Theme.onSurfaceVariant
+                            color: root.inUse ? Theme.tertiaryContainerOn : Theme.surfaceVariantOn
                         }
                     }
                 }
@@ -132,7 +132,7 @@ Card {
                     Layout.fillWidth: true
                     text: root.info.desc
                     role: "bodyM"
-                    color: Theme.onSurfaceVariant
+                    color: Theme.surfaceVariantOn
                     wrapMode: Text.WordWrap
                     lineHeightMode: Text.ProportionalHeight
                     lineHeight: 1.15
@@ -159,7 +159,7 @@ Card {
                     visible: root.wide
                     role: "labelM"
                     text: "shell"
-                    color: Theme.onSurfaceVariant
+                    color: Theme.surfaceVariantOn
                 }
 
                 Flow {

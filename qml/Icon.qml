@@ -6,7 +6,7 @@ Text {
     property bool filled: false
     property real size: 24
     property real fill: filled ? 1 : 0
-    property color tint: Theme.onSurface
+    property color tint: Theme.surfaceOn
 
     readonly property var glyphs: ({
         check: [0xE668, "✓"],

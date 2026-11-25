@@ -36,7 +36,7 @@ Item {
         Rectangle {
             anchors.fill: parent
             radius: parent.radius
-            color: root.selected ? Theme.onPrimary : Theme.onSurfaceVariant
+            color: root.selected ? Theme.primaryOn : Theme.surfaceVariantOn
             opacity: root.pressed ? 0.12 : hover.hovered ? 0.08 : 0
             FadeBehavior on opacity {}
         }
@@ -47,7 +47,7 @@ Item {
         name: root.icon
         size: 24
         filled: root.selected
-        tint: root.selected ? Theme.onPrimary : Theme.onSurfaceVariant
+        tint: root.selected ? Theme.primaryOn : Theme.surfaceVariantOn
     }
 
     TapHandler {

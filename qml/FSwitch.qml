@@ -47,7 +47,7 @@ Item {
         radius: d / 2
         x: (root.checked ? root.width - 16 : 16) - d / 2
         y: (root.height - d) / 2
-        color: root.checked ? Theme.onPrimary : Theme.outline
+        color: root.checked ? Theme.primaryOn : Theme.outline
         SpringBehavior on x { preset: Motion.spatialFast; eps: 0.1 }
         SpringBehavior on width { preset: Motion.spatialFast; eps: 0.1 }
         SpringBehavior on height { preset: Motion.spatialFast; eps: 0.1 }

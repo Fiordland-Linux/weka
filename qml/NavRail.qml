@@ -37,7 +37,7 @@ Card {
                 name: "widgets"
                 size: 24
                 filled: true
-                tint: Theme.onTertiaryContainer
+                tint: Theme.tertiaryContainerOn
             }
         }
 
@@ -71,7 +71,7 @@ Card {
                         name: item.modelData.icon
                         size: 24
                         filled: item.on
-                        tint: item.on ? Theme.onSecondaryContainer : Theme.onSurfaceVariant
+                        tint: item.on ? Theme.secondaryContainerOn : Theme.surfaceVariantOn
                     }
                 }
 
@@ -81,7 +81,7 @@ Card {
                     role: "labelM"
                     emphasized: item.on
                     text: item.modelData.label
-                    color: item.on ? Theme.onSurface : Theme.onSurfaceVariant
+                    color: item.on ? Theme.surfaceOn : Theme.surfaceVariantOn
                 }
 
                 TapHandler {

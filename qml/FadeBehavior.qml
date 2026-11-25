@@ -4,7 +4,7 @@ Behavior {
     enabled: !Motion.reduced
 
     NumberAnimation {
-        duration: Motion.short
+        duration: Motion.durShort
         easing.type: Easing.BezierSpline
         easing.bezierCurve: Motion.standard
     }

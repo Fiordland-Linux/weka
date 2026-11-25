@@ -23,6 +23,6 @@ Rectangle {
         anchors.leftMargin: root.radius * 0.7
         anchors.rightMargin: root.radius * 0.7
         height: 1
-        color: Qt.alpha(Theme.onSurface, 0.08)
+        color: Qt.alpha(Theme.surfaceOn, 0.08)
     }
 }

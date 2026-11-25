@@ -11,13 +11,14 @@ Flickable {
     contentHeight: contentItem.childrenRect.height
 
     ScrollBar.vertical: ScrollBar {
+        id: bar
         policy: ScrollBar.AsNeeded
         implicitWidth: 10
 
         contentItem: Rectangle {
             implicitWidth: 6
             radius: 3
-            color: Qt.alpha(Theme.onSurface, parent.pressed ? 0.5 : 0.3)
+            color: Qt.alpha(Theme.surfaceOn, bar.pressed ? 0.5 : 0.3)
         }
 
         background: Item {}

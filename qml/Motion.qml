@@ -6,10 +6,10 @@ QtObject {
     property bool user: false
     readonly property bool reduced: system || user
 
-    readonly property int short: reduced ? 1 : 150
-    readonly property int medium: reduced ? 1 : 300
-    readonly property int long: reduced ? 1 : 500
-    readonly property int extraLong: reduced ? 1 : 700
+    readonly property int durShort: reduced ? 1 : 150
+    readonly property int durMedium: reduced ? 1 : 300
+    readonly property int durLong: reduced ? 1 : 500
+    readonly property int durExtraLong: reduced ? 1 : 700
 
     readonly property var emphasizedDecel: [0.05, 0.7, 0.1, 1, 1, 1]
     readonly property var emphasizedAccel: [0.3, 0, 0.8, 0.15, 1, 1]

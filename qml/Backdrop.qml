@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 
 Item {
@@ -31,7 +32,7 @@ Item {
         model: 7
 
         Rectangle {
-            id: ring
+            id: glow
             required property int index
             readonly property real d: root.width * 0.75 * (1 - index / 8)
             x: root.width * 0.1 - d / 2
