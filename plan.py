@@ -94,6 +94,16 @@ def hypr_shell(home, sysm):
     return m.group(1)
 
 
+def marked(sysm, home, pkgs, shell):
+    for m in shell.get("markers", []):
+        if m.startswith("pkg:"):
+            if m[4:] in pkgs:
+                return True
+        elif sysm.exists(f"{home}/{m}"):
+            return True
+    return False
+
+
 def detect(sysm, home, pkgs=None):
     pkgs = pkgs if pkgs is not None else sysm.installed()
     found = {}
@@ -108,6 +118,8 @@ def detect(sysm, home, pkgs=None):
             if sid not in shells:
                 dots = sysm.read(f"{home}/.config/fiordland/dots").strip()
                 sid = next((s for s in shells if desktops.SHELLS[s].get("script") == dots), None)
+            if sid not in shells:
+                sid = next((s for s in shells if marked(sysm, home, pkgs, desktops.SHELLS[s])), None)
             if sid not in shells:
                 sid = next((s for s in shells if "run" in desktops.SHELLS[s]
                             and desktops.SHELLS[s]["pkgs"][0] in pkgs), "none")

@@ -48,7 +48,9 @@ def apply(home, did, sid, log=print, system=read):
     run = shell.get("run") if shell and not script else None
     if did == "hyprland":
         path = f"{home}/.config/hypr/hyprland.lua"
-        text = read(path) or system("/usr/share/fiordland/hyprland.lua")
+        text = read(path)
+        if not re.search(r'^local shell = "[\w-]*"', text, re.M):
+            text = system("/usr/share/fiordland/hyprland.lua")
         if not text:
             return
         val = "dots" if script else sid
@@ -101,15 +103,17 @@ def apply(home, did, sid, log=print, system=read):
                 write(path, new, log)
 
 
-def apply_all(home, keep, log=print, system=read):
+def apply_all(home, keep, log=print, system=read, current=None):
+    current = current or {}
+    changed = {d: s for d, s in keep.items() if d not in current or current[d] != s}
     dots = f"{home}/.config/fiordland/dots"
-    scripts = [desktops.SHELLS[s]["script"] for s in keep.values() if s and "script" in desktops.SHELLS[s]]
+    scripts = [desktops.SHELLS[s]["script"] for s in changed.values() if s and "script" in desktops.SHELLS[s]]
     if scripts:
         if read(dots).strip() not in scripts:
             write(dots, scripts[0] + "\n", log)
-    elif os.path.exists(dots):
+    elif os.path.exists(dots) and not any(s and "script" in desktops.SHELLS[s] for s in keep.values()):
         backup(dots)
         os.remove(dots)
         log(f"removed {dots}")
-    for did, sid in keep.items():
+    for did, sid in changed.items():
         apply(home, did, sid, log, system)

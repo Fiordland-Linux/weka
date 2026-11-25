@@ -174,7 +174,7 @@ class Backend(QObject):
     def _config(self):
         self._setStep("config")
         try:
-            userconf.apply_all(self._home, self._keep, self.logAdded.emit)
+            userconf.apply_all(self._home, self._keep, self.logAdded.emit, current=self._current)
         except Exception as e:
             self.logAdded.emit(f"error: {e}")
             self.finished.emit(True, "Desktops changed, but your config could not be updated fully. Check the log.")

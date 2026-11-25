@@ -144,6 +144,15 @@ class Plan(unittest.TestCase):
         s = Fake(PLASMA, sessions("plasma"))
         self.assertEqual(plan.detect(s, "/home/x"), {"plasma": None})
 
+    def test_detect_dots_by_marker(self):
+        files = sessions("hyprland")
+        files["/home/x/.config/hypr/hyprland.lua"] = "require(\"hyprland.lib\")\n"
+        files["/home/x/.config/quickshell/ii"] = "dir"
+        s = Fake(desktops.packages("hyprland", "crest"), files, dm="greetd")
+        self.assertEqual(plan.detect(s, "/home/x"), {"hyprland": "illogical-impulse"})
+        del files["/home/x/.config/quickshell/ii"]
+        self.assertEqual(plan.detect(Fake(desktops.packages("hyprland", "crest"), files), "/home/x"), {"hyprland": "crest"})
+
 
 class UserConf(unittest.TestCase):
     def test_dots_and_hypr(self):
@@ -156,6 +165,21 @@ class UserConf(unittest.TestCase):
             userconf.apply_all(home, {"hyprland": "noctalia"}, lambda *_: None, sys_read)
             self.assertFalse(os.path.exists(f"{home}/.config/fiordland/dots"))
             self.assertIn('local shell = "noctalia"', open(f"{home}/.config/hypr/hyprland.lua").read())
+
+    def test_unchanged_dots_left_alone(self):
+        with tempfile.TemporaryDirectory() as home:
+            os.makedirs(f"{home}/.config/hypr")
+            theirs = 'require("hyprland.lib")\n'
+            with open(f"{home}/.config/hypr/hyprland.lua", "w") as f:
+                f.write(theirs)
+            sys_read = lambda p: 'local shell = "crest"\n' if p.endswith("hyprland.lua") else ""
+            cur = {"hyprland": "illogical-impulse"}
+            userconf.apply_all(home, {"hyprland": "illogical-impulse"}, lambda *_: None, sys_read, current=cur)
+            self.assertEqual(open(f"{home}/.config/hypr/hyprland.lua").read(), theirs)
+            self.assertFalse(os.path.exists(f"{home}/.config/fiordland/dots"))
+            userconf.apply_all(home, {"hyprland": "crest"}, lambda *_: None, sys_read, current=cur)
+            self.assertEqual(open(f"{home}/.config/hypr/hyprland.lua").read(), 'local shell = "crest"\n')
+            self.assertTrue(any(n.startswith("hyprland.lua.weka-") for n in os.listdir(f"{home}/.config/hypr")))
 
     def test_sway_swap(self):
         with tempfile.TemporaryDirectory() as home:
