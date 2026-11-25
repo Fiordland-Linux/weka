@@ -95,6 +95,10 @@ def login_manager(d, user, auto):
         write("/etc/greetd/config.toml", conf)
 
 
+def stable():
+    return read("/etc/fiordland/channel").strip() == "stable"
+
+
 def unit_exists(dm):
     return any(os.path.exists(f"{b}/{plan.DM_UNITS[dm]}.service") for b in ("/usr/lib/systemd/system", "/etc/systemd/system"))
 
@@ -155,7 +159,7 @@ def main():
                 check=False)
         out("step", "install")
         if p["install"]:
-            run("pacman", "-Syu", "--needed", "--noconfirm", *p["install"])
+            run("pacman", "-Syuu" if stable() else "-Syu", "--needed", "--noconfirm", *p["install"])
         missing = [k for k in keep if not plan.session_file(sysm, desktops.find(k))]
         if missing:
             raise RuntimeError("no login session found for " + ", ".join(missing) + ", nothing was removed")
