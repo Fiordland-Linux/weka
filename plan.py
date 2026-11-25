@@ -19,7 +19,10 @@ RUNS = {s["run"] for s in desktops.SHELLS.values() if "run" in s}
 
 class Sys:
     def pacman(self, *args):
-        r = subprocess.run(["pacman", *args], capture_output=True, text=True)
+        try:
+            r = subprocess.run(["pacman", *args], capture_output=True, text=True, stdin=subprocess.DEVNULL)
+        except OSError:
+            return ""
         return r.stdout if r.returncode == 0 else ""
 
     def installed(self):
@@ -38,8 +41,11 @@ class Sys:
     def cascade(self, pkgs):
         if not pkgs:
             return set()
-        r = subprocess.run(["pacman", "-Rsu", "--print", "--print-format", "%n", *sorted(pkgs)],
-                           capture_output=True, text=True)
+        try:
+            r = subprocess.run(["pacman", "-Rsu", "--print", "--print-format", "%n", "--", *sorted(pkgs)],
+                               capture_output=True, text=True, stdin=subprocess.DEVNULL)
+        except OSError:
+            return set(pkgs)
         return set(r.stdout.split()) if r.returncode == 0 else set(pkgs)
 
     def files(self, pkgs):
