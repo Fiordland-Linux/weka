@@ -2,15 +2,18 @@ import os
 import pwd
 import threading
 
-from PySide6.QtCore import Property, QObject, QProcess, QTimer, Signal, Slot
+from PySide6.QtCore import Property, QObject, QProcess, Qt, QTimer, Signal, Slot
+from PySide6.QtGui import QFontDatabase, QGuiApplication
 
 import desktops
 import plan
+import system
 import userconf
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 HELPER = "/usr/lib/weka/weka-helper"
 STEPS = ["snapshot", "install", "login", "remove", "verify", "config"]
+DEMO_CURRENT = {"plasma": None, "hyprland": "crest"}
 
 
 class Backend(QObject):
@@ -20,20 +23,46 @@ class Backend(QObject):
     logAdded = Signal(str)
     finished = Signal(bool, str)
     _planDone = Signal("QVariantMap", str)
+    darkChanged = Signal()
 
-    def __init__(self, dry_run=False):
+    def __init__(self, dry_run=False, demo=False, theme=""):
         super().__init__()
-        self._dry = dry_run
+        self._dry = dry_run or demo
+        self._demo = demo
         self._home = pwd.getpwuid(os.getuid()).pw_dir
         self._sys = plan.Sys()
-        self._current = plan.detect(self._sys, self._home)
-        self._session = self._running()
+        self._current = dict(DEMO_CURRENT) if demo else plan.detect(self._sys, self._home)
+        self._session = "plasma" if demo else self._running()
         self._step = ""
         self._keep = {}
         self._default = ""
         self._proc = None
         self._gen = 0
+        self._theme = theme
+        self._low = system.low_end() if not demo else system.flag(os.environ, "WEKA_LOW_END") is True
+        self._reduced = system.reduced_motion(low=self._low) if not demo else system.flag(os.environ, "WEKA_REDUCE_MOTION") is True
+        self._symbols = "Material Symbols Rounded" in QFontDatabase.families()
         self._planDone.connect(self._onPlan)
+        QGuiApplication.styleHints().colorSchemeChanged.connect(lambda *_: self.darkChanged.emit())
+
+    @Property(bool, notify=darkChanged)
+    def dark(self):
+        if self._theme in ("light", "dark"):
+            return self._theme == "dark"
+        return QGuiApplication.styleHints().colorScheme() != Qt.ColorScheme.Light
+
+    @Property(bool, constant=True)
+    def lowEnd(self):
+        return self._low
+
+    @Property(bool, constant=True)
+    def reducedMotion(self):
+        return self._reduced
+
+    @Property(bool, constant=True)
+    def hasSymbols(self):
+        return self._symbols
+
 
     def _running(self):
         names = os.environ.get("XDG_CURRENT_DESKTOP", "").lower().split(":")
@@ -63,7 +92,9 @@ class Backend(QObject):
 
     @Property(str, constant=True)
     def currentDefault(self):
-        dm = self._sys.current_dm()
+        if self._demo:
+            return "plasma"
+        dm =self._sys.current_dm()
         for did in self._current:
             if desktops.find(did)["dm"] == dm:
                 return did
@@ -94,6 +125,11 @@ class Backend(QObject):
 
         def work():
             try:
+                if self._demo:
+                    p = self._demoPlan(keep, default)
+                    p["gen"] = gen
+                    self._planDone.emit(p, "")
+                    return
                 p = plan.build(self._sys, self._current, keep, default, apps, self._home)
                 p["keep"] = {k: v or "" for k, v in p["keep"].items()}
                 p["kept_apps"] = [{"pkg": k, "apps": v} for k, v in p["kept_apps"].items()]
@@ -103,6 +139,25 @@ class Backend(QObject):
                 self._planDone.emit({"gen": gen}, str(e))
 
         threading.Thread(target=work, daemon=True).start()
+
+    def _demoPlan(self, keep, default):
+        want, dropped = set(), set()
+        for did, sid in keep.items():
+            want |= set(desktops.packages(did, sid))
+        for did, sid in self._current.items():
+            if did not in keep or keep[did] != sid:
+                dropped |= set(desktops.packages(did, sid))
+        dm = desktops.find(default)["dm"]
+        old = "sddm"
+        return {
+            "keep": {k: v or "" for k, v in keep.items()}, "default": default,
+            "install": sorted(want - {p for d, s in self._current.items() for p in desktops.packages(d, s)}),
+            "remove": sorted(dropped - want),
+            "warnings": ["Your saved passwords are in KWallet, which only unlocks by itself inside KDE Plasma. "
+                         "It stays installed with your passwords in it."] if "plasma" not in keep else [],
+            "kept_apps": [{"pkg": "dolphin", "apps": ["org.kde.dolphin"]}],
+            "dm": dm, "old_dm": old, "switch_dm": dm != old,
+        }
 
     def _onPlan(self, p, err):
         if p.get("gen") != self._gen:
