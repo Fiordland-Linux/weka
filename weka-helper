@@ -217,8 +217,11 @@ def apply_plan(sysm, p, keep, default, user):
     d = desktops.find(default)
     out("step", "snapshot")
     if os.path.exists("/usr/bin/snapper"):
-        run("snapper", "-c", "root", "create", "-t", "single", "-c", "important", "-d", "weka: before desktop change",
-            check=False)
+        if run("snapper", "-c", "root", "create", "--print-number", "-t", "single", "-c", "important",
+               "-d", "weka: before desktop change", check=False):
+            out("log", "Snapshot creation failed. No recovery snapshot was confirmed.")
+    else:
+        out("log", "Snapper is unavailable. No recovery snapshot was created.")
     out("step", "install")
     if p["install"]:
         run("pacman", "-Syuu" if stable() else "-Syu", "--needed", "--noconfirm", "--", *p["install"])
@@ -230,14 +233,26 @@ def apply_plan(sysm, p, keep, default, user):
     out("step", "login")
     login_manager(d, user, autologin(user))
     if p["switch_dm"]:
-        if p["old_dm"]:
-            run("systemctl", "disable", plan.DM_UNITS[p["old_dm"]] + ".service", check=False)
-        run("systemctl", "enable", "--force", plan.DM_UNITS[d["dm"]] + ".service")
+        # The display-manager alias is replaced by enable --force.
+        unit = plan.DM_UNITS[d["dm"]] + ".service"
+        try:
+            run("systemctl", "enable", "--force", unit)
+            alias = ROOT + "/etc/systemd/system/display-manager.service"
+            if not os.path.isfile(alias) or os.path.basename(os.path.realpath(alias)) != unit:
+                raise RuntimeError("login manager alias did not switch")
+        except (OSError, RuntimeError):
+            if p["old_dm"]:
+                run("systemctl", "enable", "--force", plan.DM_UNITS[p["old_dm"]] + ".service")
+            raise
     out("step", "remove")
     if p["remove"]:
         if run("pacman", "-Ru", "--noconfirm", "--", *p["remove"], check=False):
             for q in p["remove"]:
                 run("pacman", "-Ru", "--noconfirm", "--", q, check=False)
+            installed = subprocess.check_output(["pacman", "-Qq"], text=True).splitlines()
+            remaining = sorted(set(p["remove"]).intersection(installed))
+            if remaining:
+                raise RuntimeError("Desktop changed, but these packages remain: " + ", ".join(remaining))
     if p["kept_apps"]:
         installed = sysm.installed()
         explicit = [q for q in p["kept_apps"] if q in installed]
@@ -245,7 +260,7 @@ def apply_plan(sysm, p, keep, default, user):
             run("pacman", "-D", "--asexplicit", "--", *explicit, check=False)
     out("step", "verify")
     if not unit_exists(d["dm"]) or not plan.session_file(sysm, d):
-        raise RuntimeError("login check failed, restore the snapshot from the boot menu")
+        raise RuntimeError("login check failed; inspect the change log before restarting")
     out("done", default)
 
 
