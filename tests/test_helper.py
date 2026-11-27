@@ -280,3 +280,21 @@ class Policy(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ApplyFailures(unittest.TestCase):
+    def test_failed_removal_and_failed_verification_are_reported(self):
+        from unittest.mock import Mock, patch
+
+        plan = {"install": [], "remove": ["example"], "kept_apps": [], "switch_dm": False}
+        with patch.object(helper, "unit_exists", return_value=True), patch.object(helper, "login_manager"), \
+             patch.object(helper, "autologin", return_value=False), patch.object(helper, "run", return_value=1), \
+             patch.object(helper.plan, "session_file", return_value="session"), patch.object(helper, "out") as report, \
+             patch.object(helper.subprocess, "check_output") as query:
+            query.return_value = "example\n"
+            with self.assertRaisesRegex(RuntimeError, "example"):
+                helper.apply_plan(Mock(), plan, ["plasma"], "plasma", "kiri")
+            query.side_effect = helper.subprocess.CalledProcessError(1, ["pacman", "-Qq"])
+            with self.assertRaises(helper.subprocess.CalledProcessError):
+                helper.apply_plan(Mock(), plan, ["plasma"], "plasma", "kiri")
+            self.assertNotIn(("done", "plasma"), [c.args for c in report.call_args_list])

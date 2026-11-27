@@ -30,7 +30,7 @@ Window {
         "tick what you want installed. anything you untick is removed cleanly.",
         "here is exactly what will happen. your files and other apps stay put.",
         "keep this window open and your pc on.",
-        ok ? "restart to use your new setup." : "a snapshot was taken first, so you can roll back from the boot menu."
+        ok ? "restart to use your new setup." : "check the change log before restarting."
     ]
     readonly property var rail: [
         { icon: "desktop_windows", label: "pick", enabled: page === 1 },
